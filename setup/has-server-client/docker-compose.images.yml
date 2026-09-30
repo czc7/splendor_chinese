@@ -1,0 +1,76 @@
+# 使用预构建镜像的部署配置（无需在本地编译）。
+# 镜像由 GitHub Actions 推送到 GHCR，见 .github/workflows/build-images.yml
+#
+# 用法：
+#   1. 复制 .env.example 为 .env 并填入两个密钥
+#   2. docker compose -f docker-compose.images.yml up -d
+#
+# 注意：
+#   - 服务名（database / lobby-service / server）被镜像内部写死引用，
+#     例如 lobby-service 连接 jdbc:mysql://database:3306/ls，
+#     server 连接 http://lobby-service:34172，因此不能改名。
+#   - 如果四个镜像是私有仓库，需要先登录：
+#     echo $GITHUB_TOKEN | docker login ghcr.io -u <你的GitHub用户名> --password-stdin
+#
+# 开发时如需从源码重建，改用 docker-compose.yml（需先 git submodule update --init --recursive）。
+
+version: "3.8"
+
+x-image-owner: &image-owner ghcr.io/czc7
+
+services:
+  database:
+    image: *image-owner/splendor-ls-db:latest
+    ports:
+      - "3453:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 30
+      interval: 5s
+
+  lobby-service:
+    image: *image-owner/splendor-lobby:latest
+    ports:
+      - "34172:34172"
+    environment:
+      SPLENDOR_INVITE_CODE: ${SPLENDOR_INVITE_CODE:?请在.env中设置邀请码}
+      SPLENDOR_INTERNAL_DELETE_TOKEN: ${SPLENDOR_INTERNAL_DELETE_TOKEN:?请在.env中设置内部删除密钥}
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: curl --fail http://localhost:34172/api/online || exit 1
+      timeout: 5s
+      retries: 20
+      interval: 5s
+
+  server:
+    image: *image-owner/splendor-server:latest
+    ports:
+      - "33402:33402"
+    environment:
+      SPLENDOR_INTERNAL_DELETE_TOKEN: ${SPLENDOR_INTERNAL_DELETE_TOKEN:?请在.env中设置内部删除密钥}
+    volumes:
+      - ./saves:/server/saves
+    depends_on:
+      lobby-service:
+        condition: service_healthy
+    healthcheck:
+      test: curl --fail http://localhost:33402/api/online || exit 1
+      timeout: 5s
+      retries: 20
+      interval: 5s
+
+  client:
+    image: *image-owner/splendor-client:latest
+    ports:
+      - "36104:80"
+    depends_on:
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      timeout: 5s
+      retries: 20
+      interval: 5s
