@@ -1,6 +1,5 @@
 FROM maven:3.8.7-eclipse-temurin-17 AS builder
 WORKDIR /LS
-COPY maven-settings.xml /root/.m2/settings.xml
 COPY LobbyService /LS
 COPY lobby-overrides/AccountForm.java /LS/src/main/java/eu/kartoffelquadrat/ls/accountmanager/controller/AccountForm.java
 COPY lobby-overrides/AccountBootstrap.java /LS/src/main/java/eu/kartoffelquadrat/ls/accountmanager/config/AccountBootstrap.java
