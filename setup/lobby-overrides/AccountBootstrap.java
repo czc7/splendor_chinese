@@ -21,9 +21,10 @@ public class AccountBootstrap implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        savePlayerWithSimplePassword("lxh", "00DD44");
-        savePlayerWithSimplePassword("qhc", "2288EE");
-        savePlayerWithSimplePassword("xyj", "EE2222");
+        savePlayerWithSimplePassword("user1", "00DD44");
+        savePlayerWithSimplePassword("user2", "2288EE");
+        savePlayerWithSimplePassword("user3", "EE2222");
+        savePlayerWithSimplePassword("user4", "C4A500");
     }
 
     private void savePlayerWithSimplePassword(String name, String colour) {

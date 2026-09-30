@@ -45,11 +45,11 @@ public class SessionControllerTest {
     @Test
     public void creatorCanDeleteLaunchedSession() throws Exception {
         Sessions sessions = new Sessions();
-        Session session = launchedSession("lxh");
+        Session session = launchedSession("user1");
         sessions.addSession(731204L, session);
         SessionController controller = controllerFor(sessions, session);
 
-        ResponseEntity response = controller.removeSession(731204L, principal("lxh"));
+        ResponseEntity response = controller.removeSession(731204L, principal("user1"));
 
         assertEquals(200, response.getStatusCodeValue());
         assertFalse(sessions.isExistent(731204L));
@@ -59,11 +59,11 @@ public class SessionControllerTest {
     @Test
     public void nonCreatorCannotDeleteLaunchedSession() throws Exception {
         Sessions sessions = new Sessions();
-        Session session = launchedSession("lxh");
+        Session session = launchedSession("user1");
         sessions.addSession(731204L, session);
         SessionController controller = controllerFor(sessions, session);
 
-        ResponseEntity response = controller.removeSession(731204L, principal("xyj"));
+        ResponseEntity response = controller.removeSession(731204L, principal("user3"));
 
         assertEquals(403, response.getStatusCodeValue());
         assertTrue(sessions.isExistent(731204L));
@@ -73,14 +73,14 @@ public class SessionControllerTest {
     @Test
     public void backendDeleteFailureKeepsLobbySession() throws Exception {
         Sessions sessions = new Sessions();
-        Session session = launchedSession("lxh", "http://server:33402");
+        Session session = launchedSession("user1", "http://server:33402");
         sessions.addSession(731204L, session);
         SessionController controller = spy(controllerFor(sessions, session));
         doThrow(new RegistryException("backend deletion failed"))
                 .when(controller).notifyGameServerAboutDeletion(
                         731204L, session.getGameName());
 
-        ResponseEntity response = controller.removeSession(731204L, principal("lxh"));
+        ResponseEntity response = controller.removeSession(731204L, principal("user1"));
 
         assertEquals(502, response.getStatusCodeValue());
         assertTrue(sessions.isExistent(731204L));
