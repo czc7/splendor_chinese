@@ -1,0 +1,53 @@
+name: Build Splendor Docker Images
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [chinese-localization]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: splendor-client
+            context: .
+            dockerfile: setup/Dockerfile.client
+          - image: splendor-server
+            context: .
+            dockerfile: setup/Dockerfile.server
+          - image: splendor-lobby
+            context: setup
+            dockerfile: Dockerfile.ls
+          - image: splendor-ls-db
+            context: setup
+            dockerfile: Dockerfile.ls-db
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push ${{ matrix.image }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
