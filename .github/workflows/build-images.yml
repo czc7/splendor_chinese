@@ -22,10 +22,10 @@ jobs:
             dockerfile: setup/Dockerfile.server
           - image: splendor-lobby
             context: setup
-            dockerfile: Dockerfile.ls
+            dockerfile: setup/Dockerfile.ls
           - image: splendor-ls-db
             context: setup
-            dockerfile: Dockerfile.ls-db
+            dockerfile: setup/Dockerfile.ls-db
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
