@@ -9,6 +9,9 @@
 #   - 服务名（database / lobby-service / server）被镜像内部写死引用，
 #     例如 lobby-service 连接 jdbc:mysql://database:3306/ls，
 #     server 连接 http://lobby-service:34172，因此不能改名。
+#   - 浏览器端把游戏服务和大厅服务的端口写死为 33402 / 34172
+#     （client/src/scripts/settings.js 的 DEFAULT_GS_PORT / DEFAULT_LS_PORT），
+#     所以这两个映射的主机端口不能改，只能改绑定的地址。
 #   - 如果四个镜像是私有仓库，需要先登录：
 #     echo $GITHUB_TOKEN | docker login ghcr.io -u <你的GitHub用户名> --password-stdin
 #
@@ -16,13 +19,13 @@
 
 version: "3.8"
 
-x-image-owner: &image-owner ghcr.io/czc7
-
 services:
+  # 数据库只被 lobby-service 通过 docker 网络内部访问，不对外暴露。
+  # 如需用客户端工具连进去排查，把下面的注释打开（仅绑定本机）。
   database:
-    image: *image-owner/splendor-ls-db:latest
-    ports:
-      - "3453:3306"
+    image: ghcr.io/czc7/splendor-ls-db:latest
+    # ports:
+    #   - "127.0.0.1:3453:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 5s
@@ -30,7 +33,7 @@ services:
       interval: 5s
 
   lobby-service:
-    image: *image-owner/splendor-lobby:latest
+    image: ghcr.io/czc7/splendor-lobby:latest
     ports:
       - "34172:34172"
     environment:
@@ -45,14 +48,15 @@ services:
       retries: 20
       interval: 5s
 
+  # 主机端口可任意改（浏览器需要它，但只按固定端口号直连，不关心映射）。
   server:
-    image: *image-owner/splendor-server:latest
+    image: ghcr.io/czc7/splendor-server:latest
     ports:
       - "33402:33402"
     environment:
       SPLENDOR_INTERNAL_DELETE_TOKEN: ${SPLENDOR_INTERNAL_DELETE_TOKEN:?请在.env中设置内部删除密钥}
     volumes:
-      - ./saves:/server/saves
+      - splendor-saves:/server/saves
     depends_on:
       lobby-service:
         condition: service_healthy
@@ -63,7 +67,7 @@ services:
       interval: 5s
 
   client:
-    image: *image-owner/splendor-client:latest
+    image: ghcr.io/czc7/splendor-client:latest
     ports:
       - "36104:80"
     depends_on:
@@ -74,3 +78,6 @@ services:
       timeout: 5s
       retries: 20
       interval: 5s
+
+volumes:
+  splendor-saves:
