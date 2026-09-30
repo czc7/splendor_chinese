@@ -2,8 +2,6 @@ name: Build Splendor Docker Images
 
 on:
   workflow_dispatch:
-  push:
-    branches: [chinese-localization]
 
 permissions:
   contents: read
